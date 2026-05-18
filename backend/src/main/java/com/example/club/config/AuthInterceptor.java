@@ -4,6 +4,7 @@ import com.example.club.exception.BusinessException;
 import com.example.club.utils.AuthContext;
 import com.example.club.utils.JwtUtils;
 import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.JwtException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
@@ -24,7 +25,12 @@ public class AuthInterceptor implements HandlerInterceptor {
         if (header == null || !header.startsWith("Bearer ")) {
             throw new BusinessException(401, "请先登录");
         }
-        Claims claims = jwtUtils.parse(header.substring(7));
+        Claims claims;
+        try {
+            claims = jwtUtils.parse(header.substring(7));
+        } catch (JwtException | IllegalArgumentException e) {
+            throw new BusinessException(401, "登录已过期，请重新登录");
+        }
         AuthContext.set(Long.valueOf(claims.getSubject()), (List<String>) claims.get("roles"));
         return true;
     }

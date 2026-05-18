@@ -15,13 +15,22 @@ service.interceptors.response.use(
     const res = response.data
     if (res.code !== 200) {
       ElMessage.error(res.message || '请求失败')
-      if (res.code === 401) router.push('/login')
+      if (res.code === 401) {
+        localStorage.clear()
+        router.push('/login')
+      }
       return Promise.reject(res)
     }
     return res.data
   },
   error => {
-    ElMessage.error(error.message || '网络异常')
+    if (error.response?.status === 401) {
+      localStorage.clear()
+      ElMessage.error('登录已过期，请重新登录')
+      router.push('/login')
+    } else {
+      ElMessage.error(error.message || '网络异常')
+    }
     return Promise.reject(error)
   }
 )

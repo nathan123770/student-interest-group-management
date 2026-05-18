@@ -1,14 +1,17 @@
 <template>
   <header class="topbar">
-    <div class="brand">个人中心</div>
+    <div class="brand">
+      <span class="brand-mark"><el-icon><User /></el-icon></span>
+      <span>个人中心</span>
+    </div>
     <div class="nav">
-      <el-button text @click="$router.push('/')">返回首页</el-button>
-      <el-button v-if="canManage" text @click="$router.push('/admin')">管理后台</el-button>
+      <el-button text :icon="HomeFilled" @click="$router.push('/')">返回首页</el-button>
+      <el-button v-if="canManage" text :icon="Setting" @click="$router.push('/admin')">管理后台</el-button>
       <div class="user-chip">
         <el-avatar :size="32" :src="user.avatar">{{ avatarText }}</el-avatar>
         <span>{{ displayName }}</span>
       </div>
-      <el-button @click="logout">退出登录</el-button>
+      <el-button :icon="SwitchButton" @click="logout">退出登录</el-button>
     </div>
   </header>
 
@@ -17,6 +20,7 @@
       <div class="profile-main">
         <el-avatar :size="72" :src="user.avatar">{{ avatarText }}</el-avatar>
         <div>
+          <span class="eyebrow"><el-icon><User /></el-icon>学生工作台</span>
           <h1>{{ displayName }}</h1>
           <p>{{ roleNames }} · {{ user.studentNo || '暂无学号' }}</p>
         </div>
@@ -25,7 +29,7 @@
         <span>用户名：{{ user.username || '-' }}</span>
         <span>电话：{{ user.phone || '-' }}</span>
         <span>邮箱：{{ user.email || '-' }}</span>
-        <el-button type="primary" plain @click="$router.push('/my-groups')">去我的小组</el-button>
+        <el-button type="primary" plain :icon="Collection" @click="$router.push('/my-groups')">去我的小组</el-button>
       </div>
     </section>
 
@@ -61,10 +65,10 @@
           <span>快捷操作</span>
         </div>
         <div class="quick-actions">
-          <el-button type="primary" @click="$router.push('/my-groups')">我的小组</el-button>
-          <el-button @click="openCreateGroup">申请创建小组</el-button>
-          <el-button @click="activeTab = 'notices'">查看公告</el-button>
-          <el-button @click="$router.push('/')">返回首页</el-button>
+          <el-button type="primary" :icon="Collection" @click="$router.push('/my-groups')">我的小组</el-button>
+          <el-button :icon="Plus" @click="openCreateGroup">申请创建小组</el-button>
+          <el-button :icon="Bell" @click="activeTab = 'notices'">查看公告</el-button>
+          <el-button :icon="HomeFilled" @click="$router.push('/')">返回首页</el-button>
         </div>
       </article>
     </section>
@@ -89,7 +93,7 @@
     <section class="profile-content">
       <div class="toolbar">
         <h2>我的校园兴趣档案</h2>
-        <el-button type="primary" @click="openCreateGroup">申请创建小组</el-button>
+        <el-button type="primary" :icon="Plus" @click="openCreateGroup">申请创建小组</el-button>
       </div>
       <el-tabs v-model="activeTab">
         <el-tab-pane label="加入申请流程" name="applies">
@@ -164,7 +168,7 @@
   </main>
 
   <el-dialog v-model="groupDialog" title="申请创建兴趣小组" width="560px">
-    <el-form :model="groupForm" label-width="90px">
+    <el-form :model="groupForm" label-width="96px">
       <el-form-item label="小组名称"><el-input v-model="groupForm.name" /></el-form-item>
       <el-form-item label="分类">
         <el-select v-model="groupForm.categoryId" style="width:100%">
@@ -175,7 +179,7 @@
       <el-form-item label="人数上限"><el-input-number v-model="groupForm.maxMembers" :min="1" /></el-form-item>
       <el-form-item label="封面">
         <div class="cover-uploader">
-          <img v-if="groupForm.coverUrl" class="cover-preview" :src="groupForm.coverUrl" />
+          <img v-if="groupForm.coverUrl" class="cover-preview" :src="groupForm.coverUrl" alt="小组封面预览" />
           <el-upload :show-file-list="false" :http-request="uploadGroupCover" accept="image/*">
             <el-button type="primary">上传封面</el-button>
           </el-upload>
@@ -195,6 +199,7 @@
 import { computed, onMounted, reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
+import { Bell, Collection, HomeFilled, Plus, Setting, SwitchButton, User } from '@element-plus/icons-vue'
 import { categories, groups, me, myActivitySignups, myApplies, notices, publicActivities, publicGroups, saveGroup, uploadImage } from '../api'
 import { formatDate } from '../utils/format'
 

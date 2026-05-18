@@ -1,36 +1,39 @@
 <template>
-  <div>
+  <div class="page-shell">
     <header class="topbar">
-      <div class="brand">我的小组</div>
+      <div class="brand">
+        <span class="brand-mark"><el-icon><Collection /></el-icon></span>
+        <span>我的小组</span>
+      </div>
       <div class="nav">
-        <el-button text @click="$router.push('/')">首页</el-button>
-        <el-button text @click="$router.push('/student')">个人中心</el-button>
-        <el-button v-if="canManage" text @click="$router.push('/admin')">管理后台</el-button>
+        <el-button text :icon="HomeFilled" @click="$router.push('/')">首页</el-button>
+        <el-button text :icon="User" @click="$router.push('/student')">个人中心</el-button>
+        <el-button v-if="canManage" text :icon="Setting" @click="$router.push('/admin')">管理后台</el-button>
         <div class="user-chip">
           <el-avatar :size="32" :src="currentUser.avatar">{{ avatarText }}</el-avatar>
           <span>{{ displayName }}</span>
         </div>
-        <el-button @click="logout">退出</el-button>
+        <el-button :icon="SwitchButton" @click="logout">退出</el-button>
       </div>
     </header>
 
     <main class="section my-groups-page">
       <section class="my-groups-hero">
         <div>
-          <el-tag effect="plain" type="success">个人范围</el-tag>
+          <span class="eyebrow"><el-icon><Collection /></el-icon>个人范围</span>
           <h1>我的小组</h1>
-          <p>这里集中展示你已经加入或负责的小组，主页只保留公开浏览入口。</p>
+          <p class="section-desc">这里集中展示你已经加入或负责的小组，首页只保留公开浏览入口。</p>
         </div>
-        <el-button type="primary" @click="$router.push('/')">发现更多小组</el-button>
+        <el-button type="primary" :icon="Compass" @click="$router.push('/')">发现更多小组</el-button>
       </section>
 
       <el-empty v-if="groupList.length === 0" description="你还没有加入任何小组">
-        <el-button type="primary" @click="$router.push('/')">去申请加入</el-button>
+        <el-button type="primary" :icon="Plus" @click="$router.push('/')">去申请加入</el-button>
       </el-empty>
 
       <div v-else class="joined-grid">
         <article v-for="group in groupList" :key="group.id" class="joined-card">
-          <img class="joined-cover" :src="group.coverUrl || defaultCover" />
+          <img class="joined-cover" :src="group.coverUrl || defaultCover" :alt="`${group.name} 封面`" />
           <div class="joined-body">
             <div class="club-title-row">
               <h3>{{ group.name }}</h3>
@@ -42,10 +45,10 @@
             <p class="club-desc">{{ group.description || '暂无小组介绍' }}</p>
             <p class="muted">加入时间：{{ formatDate(group.joinTime) }}</p>
             <div class="card-actions">
-              <el-button @click="openDetail(group)">查看详情</el-button>
-              <el-button @click="openActivities(group)">查看活动</el-button>
-              <el-button v-if="group.memberRole === 'LEADER'" type="primary" @click="$router.push('/admin')">进入管理后台</el-button>
-              <el-button v-else type="danger" plain @click="quit(group)">退出小组</el-button>
+              <el-button :icon="View" @click="openDetail(group)">查看详情</el-button>
+              <el-button :icon="Calendar" @click="openActivities(group)">查看活动</el-button>
+              <el-button v-if="group.memberRole === 'LEADER'" type="primary" :icon="Setting" @click="$router.push('/admin')">进入管理后台</el-button>
+              <el-button v-else type="danger" plain :icon="Close" @click="quit(group)">退出小组</el-button>
             </div>
           </div>
         </article>
@@ -54,7 +57,7 @@
 
     <el-dialog v-model="detailDialog" title="小组详情" width="680px">
       <div v-if="selectedGroup" class="dialog-detail">
-        <img class="dialog-cover" :src="selectedGroup.coverUrl || defaultCover" />
+        <img class="dialog-cover" :src="selectedGroup.coverUrl || defaultCover" :alt="`${selectedGroup.name} 封面`" />
         <div>
           <el-tag>{{ roleText(selectedGroup.memberRole) }}</el-tag>
           <h2>{{ selectedGroup.name }}</h2>
@@ -86,6 +89,7 @@
 <script setup>
 import { computed, onMounted, ref } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import { Calendar, Close, Collection, Compass, HomeFilled, Plus, Setting, SwitchButton, User, View } from '@element-plus/icons-vue'
 import { joinedGroups, me, publicActivities, quitGroup } from '../api'
 import { formatDate } from '../utils/format'
 

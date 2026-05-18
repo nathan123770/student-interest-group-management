@@ -1,25 +1,28 @@
 <template>
   <div id="top" class="home-page">
     <header class="topbar">
-      <div class="brand">学生兴趣小组</div>
+      <div class="brand">
+        <span class="brand-mark"><el-icon><School /></el-icon></span>
+        <span>学生兴趣小组</span>
+      </div>
       <div class="nav">
-        <el-button text @click="scrollToTop">首页</el-button>
-        <el-button text @click="scrollToGroups">兴趣小组</el-button>
-        <el-button text @click="goMyGroups">我的小组</el-button>
-        <el-button text @click="$router.push('/student')">个人中心</el-button>
-        <el-button v-if="canManage" text @click="$router.push('/admin')">管理后台</el-button>
+        <el-button text :icon="HomeFilled" @click="scrollToTop">首页</el-button>
+        <el-button text :icon="Compass" @click="scrollToGroups">发现小组</el-button>
+        <el-button text :icon="Collection" @click="goMyGroups">我的小组</el-button>
+        <el-button text :icon="User" @click="$router.push('/student')">个人中心</el-button>
+        <el-button v-if="canManage" text :icon="Setting" @click="$router.push('/admin')">管理后台</el-button>
         <template v-if="isLogin">
           <div class="user-chip" @click="$router.push('/student')">
             <el-avatar :size="32" :src="currentUser.avatar">{{ avatarText }}</el-avatar>
             <span>{{ displayName }}</span>
           </div>
-          <el-button @click="logout">退出</el-button>
+          <el-button :icon="SwitchButton" @click="logout">退出</el-button>
         </template>
         <el-button v-else type="primary" @click="$router.push('/login')">登录 / 注册</el-button>
       </div>
     </header>
 
-    <el-carousel class="hero-carousel" height="390px" indicator-position="outside">
+    <el-carousel class="hero-carousel" height="420px" indicator-position="outside">
       <el-carousel-item v-for="item in heroSlides" :key="item.title">
         <section class="hero-slide" :style="{ background: item.background }">
           <div class="hero-mask">
@@ -28,8 +31,8 @@
               <h1>{{ item.title }}</h1>
               <p>{{ item.desc }}</p>
               <div class="hero-actions">
-                <el-button type="primary" size="large" @click="scrollToGroups">浏览小组</el-button>
-                <el-button size="large" @click="goMyGroups">我的小组</el-button>
+                <el-button type="primary" size="large" :icon="Compass" @click="scrollToGroups">浏览小组</el-button>
+                <el-button size="large" :icon="Collection" @click="goMyGroups">我的小组</el-button>
               </div>
             </div>
           </div>
@@ -40,23 +43,23 @@
     <main class="section">
       <div id="groups" class="section-anchor section-head">
         <div>
-          <el-tag type="primary" effect="plain">发现兴趣</el-tag>
+          <span class="eyebrow"><el-icon><Compass /></el-icon>发现兴趣</span>
           <h2>兴趣小组</h2>
-          <p class="section-desc">按名称或分类查找小组，选择感兴趣的方向申请加入。</p>
+          <p class="section-desc">按名称或分类查找小组，选择感兴趣的方向提交加入申请。</p>
         </div>
-        <div class="nav searchbar">
-          <el-input v-model="query.name" placeholder="搜索小组名称" clearable />
-          <el-select v-model="query.categoryId" placeholder="分类" clearable style="width:160px">
+        <div class="search-panel">
+          <el-input v-model="query.name" placeholder="搜索小组名称" clearable style="width: 220px" />
+          <el-select v-model="query.categoryId" placeholder="分类" clearable style="width: 160px">
             <el-option v-for="c in categoryList" :key="c.id" :label="c.name" :value="c.id" />
           </el-select>
-          <el-button type="primary" @click="loadGroups">搜索</el-button>
+          <el-button type="primary" :icon="Search" @click="loadGroups">搜索</el-button>
         </div>
       </div>
 
       <el-empty v-if="groupPage.records.length === 0" description="暂无已开放的小组" />
       <div v-else class="grid">
         <article v-for="g in groupPage.records" :key="g.id" class="club-card">
-          <img class="club-cover" :src="g.coverUrl || defaultCover" />
+          <img class="club-cover" :src="g.coverUrl || defaultCover" :alt="`${g.name} 封面`" />
           <div class="club-body">
             <div class="club-title-row">
               <h3>{{ g.name }}</h3>
@@ -65,8 +68,8 @@
             <p class="muted">{{ g.location || '地点待定' }} · {{ g.currentMembers }}/{{ g.maxMembers }} 人</p>
             <p class="club-desc">{{ g.description || '负责人还没有填写小组介绍。' }}</p>
             <div class="card-actions">
-              <el-button type="primary" @click="apply(g)">申请加入</el-button>
-              <el-button @click="openDetail(g)">查看详情</el-button>
+              <el-button type="primary" :icon="Plus" @click="apply(g)">申请加入</el-button>
+              <el-button :icon="View" @click="openDetail(g)">查看详情</el-button>
             </div>
           </div>
         </article>
@@ -75,7 +78,7 @@
 
     <el-dialog v-model="detailDialog" title="小组详情" width="680px">
       <div v-if="selectedGroup" class="dialog-detail">
-        <img class="dialog-cover" :src="selectedGroup.coverUrl || defaultCover" />
+        <img class="dialog-cover" :src="selectedGroup.coverUrl || defaultCover" :alt="`${selectedGroup.name} 封面`" />
         <div>
           <div class="detail-kicker">
             <el-tag>{{ categoryName(selectedGroup.categoryId) }}</el-tag>
@@ -92,7 +95,7 @@
       </div>
       <template #footer>
         <el-button @click="detailDialog = false">关闭</el-button>
-        <el-button v-if="selectedGroup" type="primary" @click="apply(selectedGroup)">申请加入</el-button>
+        <el-button v-if="selectedGroup" type="primary" :icon="Plus" @click="apply(selectedGroup)">申请加入</el-button>
       </template>
     </el-dialog>
   </div>
@@ -102,6 +105,7 @@
 import { computed, onMounted, reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import { Collection, Compass, HomeFilled, Plus, School, Search, Setting, SwitchButton, User, View } from '@element-plus/icons-vue'
 import { applyJoin, categories, me, publicGroups } from '../api'
 
 const router = useRouter()
@@ -123,15 +127,15 @@ const heroSlides = computed(() => {
   const groupSlides = groupPage.value.records.slice(0, 3).map(group => ({
     tag: '推荐小组',
     title: group.name,
-    desc: group.description || '发现兴趣方向，和同学一起参与校园社团。',
-    background: `linear-gradient(120deg, rgba(29,78,216,.74), rgba(15,118,110,.70)), url("${group.coverUrl || defaultCover}") center/cover`
+    desc: group.description || '发现兴趣方向，和同学一起参与校园社群活动。',
+    background: `url("${group.coverUrl || defaultCover}") center/cover`
   }))
   return groupSlides.length > 0 ? groupSlides : [
     {
-      tag: '校园社团',
+      tag: '校园社群',
       title: '找到热爱的方向，和同学一起把兴趣做成成果',
       desc: '浏览兴趣小组，在线申请加入，让校园生活更有组织感。',
-      background: 'linear-gradient(120deg, rgba(29,78,216,.86), rgba(20,184,166,.76)), url("https://images.unsplash.com/photo-1523050854058-8df90110c9f1") center/cover'
+      background: 'url("https://images.unsplash.com/photo-1523050854058-8df90110c9f1") center/cover'
     }
   ]
 })

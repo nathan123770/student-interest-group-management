@@ -1,28 +1,43 @@
 <template>
   <div class="admin-layout">
     <aside class="sidebar">
-      <div class="sidebar-title">{{ isAdmin ? '系统管理后台' : '负责人工作台' }}</div>
-      <el-menu background-color="#0f172a" text-color="#dbeafe" active-text-color="#ffffff" :default-active="active" @select="active = $event">
-        <el-menu-item v-for="item in menus" :key="item.key" :index="item.key">{{ item.label }}</el-menu-item>
+      <div class="sidebar-title">
+        <span class="brand-mark"><el-icon><DataBoard /></el-icon></span>
+        <span>{{ isAdmin ? '系统管理后台' : '负责人工作台' }}</span>
+      </div>
+      <el-menu background-color="transparent" text-color="#dbeafe" active-text-color="#ffffff" :default-active="active" @select="active = $event">
+        <el-menu-item v-for="item in menus" :key="item.key" :index="item.key">
+          <el-icon><component :is="item.icon" /></el-icon>
+          <span>{{ item.label }}</span>
+        </el-menu-item>
       </el-menu>
-      <el-button style="width:100%;margin-top:18px" @click="$router.push('/')">返回首页</el-button>
-      <el-button style="width:100%;margin-top:10px" @click="logout">退出登录</el-button>
+      <el-button style="width:100%;margin-top:18px" :icon="HomeFilled" @click="$router.push('/')">返回首页</el-button>
+      <el-button style="width:100%;margin-top:10px" :icon="SwitchButton" @click="logout">退出登录</el-button>
     </aside>
 
     <main class="content">
       <section v-if="active === 'overview'">
+        <div class="toolbar">
+          <div>
+            <span class="eyebrow"><el-icon><TrendCharts /></el-icon>数据概览</span>
+            <h2>校园兴趣小组运行概览</h2>
+          </div>
+        </div>
         <div class="stat-grid">
-          <div class="stat">用户数<strong>{{ overview.userCount || 0 }}</strong></div>
-          <div class="stat">小组数<strong>{{ overview.groupCount || 0 }}</strong></div>
-          <div class="stat">活动数<strong>{{ overview.activityCount || 0 }}</strong></div>
-          <div class="stat">待审申请<strong>{{ overview.pendingApplyCount || 0 }}</strong></div>
+          <div class="stat"><span>用户数</span><strong>{{ overview.userCount || 0 }}</strong></div>
+          <div class="stat"><span>小组数</span><strong>{{ overview.groupCount || 0 }}</strong></div>
+          <div class="stat"><span>活动数</span><strong>{{ overview.activityCount || 0 }}</strong></div>
+          <div class="stat"><span>待审申请</span><strong>{{ overview.pendingApplyCount || 0 }}</strong></div>
         </div>
       </section>
 
       <section v-if="active === 'groups'">
         <div class="toolbar">
-          <h2>{{ isAdmin ? '小组审核与管理' : '我的小组' }}</h2>
-          <el-button type="primary" @click="openGroup()">申请创建小组</el-button>
+          <div>
+            <span class="eyebrow"><el-icon><Collection /></el-icon>小组管理</span>
+            <h2>{{ isAdmin ? '小组审核与管理' : '我的小组' }}</h2>
+          </div>
+          <el-button type="primary" :icon="Plus" @click="openGroup()">申请创建小组</el-button>
         </div>
         <el-table :data="groupPage.records">
           <el-table-column prop="name" label="小组名称" min-width="180" />
@@ -36,9 +51,9 @@
           <el-table-column label="启用状态" width="110">
             <template #default="{ row }"><el-tag :type="enableType(row.status)">{{ enableText(row.status) }}</el-tag></template>
           </el-table-column>
-          <el-table-column width="320">
+          <el-table-column label="操作" width="340" fixed="right">
             <template #default="{ row }">
-              <el-button size="small" @click="openGroup(row)">编辑</el-button>
+              <el-button size="small" :icon="Edit" @click="openGroup(row)">编辑</el-button>
               <el-button v-if="isAdmin && row.auditStatus === 0" size="small" type="success" @click="approveGroup(row.id)">通过</el-button>
               <el-button v-if="isAdmin && row.auditStatus === 0" size="small" type="danger" @click="rejectGroup(row.id)">拒绝</el-button>
               <el-button size="small" @click="openMembers(row)">成员</el-button>
@@ -53,7 +68,10 @@
 
       <section v-if="active === 'applies'">
         <div class="toolbar">
-          <h2>加入申请审核</h2>
+          <div>
+            <span class="eyebrow"><el-icon><Checked /></el-icon>申请审核</span>
+            <h2>加入申请审核</h2>
+          </div>
           <el-select v-model="applyGroupId" placeholder="选择小组" style="width:240px" @change="loadApplies">
             <el-option v-for="g in groupPage.records" :key="g.id" :label="g.name" :value="g.id" />
           </el-select>
@@ -64,7 +82,7 @@
           <el-table-column label="状态" width="120">
             <template #default="{ row }"><el-tag :type="auditType(row.status)">{{ auditText(row.status) }}</el-tag></template>
           </el-table-column>
-          <el-table-column width="180">
+          <el-table-column label="操作" width="180">
             <template #default="{ row }">
               <el-button v-if="row.status === 0" type="success" size="small" @click="review(row.id, 1)">通过</el-button>
               <el-button v-if="row.status === 0" type="danger" size="small" @click="review(row.id, 2)">拒绝</el-button>
@@ -75,8 +93,11 @@
 
       <section v-if="active === 'activities'">
         <div class="toolbar">
-          <h2>{{ isAdmin ? '全部活动管理' : '我的小组活动' }}</h2>
-          <el-button v-if="canCreateActivity" type="primary" @click="openActivity()">发布活动</el-button>
+          <div>
+            <span class="eyebrow"><el-icon><Calendar /></el-icon>活动管理</span>
+            <h2>{{ isAdmin ? '全部活动管理' : '我的小组活动' }}</h2>
+          </div>
+          <el-button v-if="canCreateActivity" type="primary" :icon="Plus" @click="openActivity()">发布活动</el-button>
         </div>
         <el-table :data="activityPage.records">
           <el-table-column prop="title" label="活动标题" min-width="180" />
@@ -92,9 +113,9 @@
           <el-table-column label="状态" width="100">
             <template #default="{ row }"><el-tag :type="enableType(row.status)">{{ row.status === 1 ? '正常' : '已取消' }}</el-tag></template>
           </el-table-column>
-          <el-table-column width="280">
+          <el-table-column label="操作" width="300" fixed="right">
             <template #default="{ row }">
-              <el-button size="small" @click="openActivity(row)">编辑</el-button>
+              <el-button size="small" :icon="Edit" @click="openActivity(row)">编辑</el-button>
               <el-button size="small" type="primary" @click="openSignupReview(row)">报名审核</el-button>
               <el-button size="small" :type="row.status === 1 ? 'warning' : 'success'" @click="toggleActivity(row)">
                 {{ row.status === 1 ? '取消' : '启用' }}
@@ -107,8 +128,11 @@
 
       <section v-if="active === 'notices'">
         <div class="toolbar">
-          <h2>{{ isAdmin ? '系统公告管理' : '小组公告管理' }}</h2>
-          <el-button type="primary" @click="openNotice">发布公告</el-button>
+          <div>
+            <span class="eyebrow"><el-icon><Bell /></el-icon>公告管理</span>
+            <h2>{{ isAdmin ? '系统公告管理' : '小组公告管理' }}</h2>
+          </div>
+          <el-button type="primary" :icon="Plus" @click="openNotice">发布公告</el-button>
         </div>
         <el-table :data="noticeList" empty-text="暂无公告">
           <el-table-column prop="title" label="标题" />
@@ -119,9 +143,9 @@
           <el-table-column label="发布时间">
             <template #default="{ row }">{{ formatDate(row.createTime) }}</template>
           </el-table-column>
-          <el-table-column width="230">
+          <el-table-column label="操作" width="230" fixed="right">
             <template #default="{ row }">
-              <el-button size="small" @click="openNotice(row)">编辑</el-button>
+              <el-button size="small" :icon="Edit" @click="openNotice(row)">编辑</el-button>
               <el-button size="small" :type="row.status === 1 ? 'warning' : 'success'" @click="toggleNotice(row)">
                 {{ row.status === 1 ? '禁用' : '启用' }}
               </el-button>
@@ -132,7 +156,13 @@
       </section>
 
       <section v-if="active === 'categories'">
-        <div class="toolbar"><h2>分类管理</h2><el-button type="primary" @click="openCategory()">新增分类</el-button></div>
+        <div class="toolbar">
+          <div>
+            <span class="eyebrow"><el-icon><Grid /></el-icon>分类管理</span>
+            <h2>分类管理</h2>
+          </div>
+          <el-button type="primary" :icon="Plus" @click="openCategory()">新增分类</el-button>
+        </div>
         <el-table :data="categoryList">
           <el-table-column prop="name" label="名称" />
           <el-table-column prop="description" label="说明" />
@@ -140,9 +170,9 @@
           <el-table-column label="状态" width="100">
             <template #default="{ row }"><el-tag :type="enableType(row.status)">{{ enableText(row.status) }}</el-tag></template>
           </el-table-column>
-          <el-table-column width="230">
+          <el-table-column label="操作" width="230">
             <template #default="{ row }">
-              <el-button size="small" @click="openCategory(row)">编辑</el-button>
+              <el-button size="small" :icon="Edit" @click="openCategory(row)">编辑</el-button>
               <el-button size="small" :type="row.status === 1 ? 'warning' : 'success'" @click="toggleCategory(row)">
                 {{ row.status === 1 ? '禁用' : '启用' }}
               </el-button>
@@ -153,7 +183,13 @@
       </section>
 
       <section v-if="active === 'users'">
-        <div class="toolbar"><h2>用户管理</h2><el-button @click="loadUsers">刷新</el-button></div>
+        <div class="toolbar">
+          <div>
+            <span class="eyebrow"><el-icon><User /></el-icon>用户管理</span>
+            <h2>用户管理</h2>
+          </div>
+          <el-button :icon="Refresh" @click="loadUsers">刷新</el-button>
+        </div>
         <el-table :data="userList">
           <el-table-column prop="username" label="用户名" />
           <el-table-column prop="realName" label="姓名" />
@@ -176,7 +212,7 @@
       <el-table-column label="状态" width="100">
         <template #default="{ row }"><el-tag :type="row.status === 1 ? 'success' : 'info'">{{ row.status === 1 ? '正常' : '已移除' }}</el-tag></template>
       </el-table-column>
-      <el-table-column width="120">
+      <el-table-column label="操作" width="120">
         <template #default="{ row }">
           <el-button v-if="row.memberRole !== 'LEADER' && row.status === 1" size="small" type="danger" @click="kickMember(row)">移除</el-button>
         </template>
@@ -194,7 +230,7 @@
         <template #default="{ row }"><el-tag :type="auditType(row.status)">{{ auditText(row.status) }}</el-tag></template>
       </el-table-column>
       <el-table-column prop="reviewRemark" label="审核备注" />
-      <el-table-column width="180">
+      <el-table-column label="操作" width="180">
         <template #default="{ row }">
           <el-button v-if="row.status === 0" type="success" size="small" @click="reviewSignup(row.id, 1)">通过</el-button>
           <el-button v-if="row.status === 0" type="danger" size="small" @click="reviewSignup(row.id, 2)">拒绝</el-button>
@@ -204,7 +240,7 @@
   </el-dialog>
 
   <el-dialog v-model="groupDialog" title="兴趣小组" width="560px">
-    <el-form :model="groupForm" label-width="90px">
+    <el-form :model="groupForm" label-width="96px">
       <el-form-item label="名称"><el-input v-model="groupForm.name" /></el-form-item>
       <el-form-item label="分类">
         <el-select v-model="groupForm.categoryId" style="width:100%">
@@ -215,20 +251,20 @@
       <el-form-item label="人数上限"><el-input-number v-model="groupForm.maxMembers" :min="1" /></el-form-item>
       <el-form-item label="封面">
         <div class="cover-uploader">
-          <img v-if="groupForm.coverUrl" class="cover-preview" :src="groupForm.coverUrl" />
+          <img v-if="groupForm.coverUrl" class="cover-preview" :src="groupForm.coverUrl" alt="小组封面预览" />
           <el-upload :show-file-list="false" :http-request="uploadGroupCover" accept="image/*">
             <el-button type="primary">上传封面</el-button>
           </el-upload>
           <el-input v-model="groupForm.coverUrl" placeholder="也可以粘贴图片 URL" />
         </div>
       </el-form-item>
-      <el-form-item label="介绍"><el-input v-model="groupForm.description" type="textarea" /></el-form-item>
+      <el-form-item label="介绍"><el-input v-model="groupForm.description" type="textarea" :rows="4" /></el-form-item>
     </el-form>
     <template #footer><el-button @click="groupDialog=false">取消</el-button><el-button type="primary" @click="submitGroup">保存</el-button></template>
   </el-dialog>
 
   <el-dialog v-model="activityDialog" title="活动" width="560px">
-    <el-form :model="activityForm" label-width="90px">
+    <el-form :model="activityForm" label-width="96px">
       <el-form-item label="小组">
         <el-select v-model="activityForm.groupId" style="width:100%">
           <el-option v-for="g in approvedGroups" :key="g.id" :label="g.name" :value="g.id" />
@@ -239,13 +275,13 @@
       <el-form-item label="开始"><el-date-picker v-model="activityForm.startTime" type="datetime" value-format="YYYY-MM-DD HH:mm:ss" /></el-form-item>
       <el-form-item label="结束"><el-date-picker v-model="activityForm.endTime" type="datetime" value-format="YYYY-MM-DD HH:mm:ss" /></el-form-item>
       <el-form-item label="名额"><el-input-number v-model="activityForm.maxParticipants" :min="1" /></el-form-item>
-      <el-form-item label="内容"><el-input v-model="activityForm.content" type="textarea" /></el-form-item>
+      <el-form-item label="内容"><el-input v-model="activityForm.content" type="textarea" :rows="4" /></el-form-item>
     </el-form>
     <template #footer><el-button @click="activityDialog=false">取消</el-button><el-button type="primary" @click="submitActivity">保存</el-button></template>
   </el-dialog>
 
   <el-dialog v-model="noticeDialog" :title="noticeForm.id ? '编辑公告' : '发布公告'" width="520px">
-    <el-form :model="noticeForm" label-width="90px">
+    <el-form :model="noticeForm" label-width="96px">
       <el-form-item label="标题"><el-input v-model="noticeForm.title" /></el-form-item>
       <el-form-item label="类型">
         <el-select v-model="noticeForm.noticeType" :disabled="!isAdmin" style="width:100%">
@@ -259,7 +295,7 @@
         </el-select>
       </el-form-item>
       <el-form-item label="置顶"><el-switch v-model="noticeForm.topFlag" :active-value="1" :inactive-value="0" /></el-form-item>
-      <el-form-item label="内容"><el-input v-model="noticeForm.content" type="textarea" /></el-form-item>
+      <el-form-item label="内容"><el-input v-model="noticeForm.content" type="textarea" :rows="4" /></el-form-item>
     </el-form>
     <template #footer><el-button @click="noticeDialog=false">取消</el-button><el-button type="primary" @click="submitNotice">保存</el-button></template>
   </el-dialog>
@@ -279,6 +315,7 @@
 import { computed, onMounted, reactive, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import { Bell, Calendar, Checked, Collection, DataBoard, Edit, Grid, HomeFilled, Plus, Refresh, SwitchButton, TrendCharts, User } from '@element-plus/icons-vue'
 import { activities, activitySignups, allNotices, categories, deleteActivity, deleteCategory, deleteGroup, deleteNotice, groupApplies, groupMembers, groups, managedNotices, removeMember, reviewActivitySignup, reviewApply, reviewGroup, saveActivity, saveCategory, saveGroup, saveNotice, setUserStatus, stats, uploadImage, users } from '../api'
 import { formatDate } from '../utils/format'
 
@@ -288,18 +325,18 @@ const isAdmin = roles.includes('ADMIN')
 const isLeader = roles.includes('LEADER')
 const menus = computed(() => isAdmin
   ? [
-      { key: 'overview', label: '数据统计' },
-      { key: 'groups', label: '小组审核与管理' },
-      { key: 'activities', label: '全部活动管理' },
-      { key: 'notices', label: '系统公告管理' },
-      { key: 'categories', label: '分类管理' },
-      { key: 'users', label: '用户管理' }
+      { key: 'overview', label: '数据统计', icon: TrendCharts },
+      { key: 'groups', label: '小组审核与管理', icon: Collection },
+      { key: 'activities', label: '全部活动管理', icon: Calendar },
+      { key: 'notices', label: '系统公告管理', icon: Bell },
+      { key: 'categories', label: '分类管理', icon: Grid },
+      { key: 'users', label: '用户管理', icon: User }
     ]
   : [
-      { key: 'groups', label: '我的小组' },
-      { key: 'applies', label: '加入申请审核' },
-      { key: 'activities', label: '活动管理' },
-      { key: 'notices', label: '小组公告' }
+      { key: 'groups', label: '我的小组', icon: Collection },
+      { key: 'applies', label: '加入申请审核', icon: Checked },
+      { key: 'activities', label: '活动管理', icon: Calendar },
+      { key: 'notices', label: '小组公告', icon: Bell }
     ])
 const active = ref(menus.value[0]?.key || 'groups')
 const overview = ref({})
