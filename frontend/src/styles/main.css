@@ -594,6 +594,19 @@ img {
   font-weight: 800;
 }
 
+.sidebar-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 18px;
+}
+
+.sidebar-actions .el-button {
+  width: 100%;
+  margin: 0;
+  justify-content: center;
+}
+
 .content {
   min-width: 0;
   padding: 24px;
@@ -726,6 +739,23 @@ img {
 
 .cover-preview {
   max-width: 360px;
+}
+
+.table-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  flex-wrap: nowrap;
+  gap: 6px;
+}
+
+.table-actions .el-button {
+  margin: 0;
+}
+
+.table-actions .el-button--small {
+  padding-left: 8px;
+  padding-right: 8px;
 }
 
 .el-button {

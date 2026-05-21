@@ -116,7 +116,8 @@ public class ActivityServiceImpl extends ServiceImpl<ActivityMapper, Activity> i
             throw new BusinessException("活动不存在");
         }
         checkGroupOwner(old.getGroupId());
-        removeById(id);
+        old.setStatus(0);
+        updateById(old);
         operationLogService.record("ACTIVITY", "DELETE", id, "删除活动：" + old.getTitle());
     }
 

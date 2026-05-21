@@ -48,7 +48,7 @@ source sql/schema.sql;
 source sql/data.sql;
 ```
 
-2. 修改 `backend/src/main/resources/application.yml` 中的数据库连接：
+2. 本地开发默认使用 `dev` 配置，确认 `backend/src/main/resources/application-dev.yml` 中的数据库连接符合本机环境：
 
 ```yaml
 spring:
@@ -58,13 +58,51 @@ spring:
     password: root
 ```
 
-也可以不改文件，直接用环境变量覆盖：
+如果需要使用生产配置或不想把密码写进文件，可以通过环境变量覆盖：
 
 ```bash
+SPRING_PROFILES_ACTIVE=prod
 DB_URL=jdbc:mysql://127.0.0.1:3306/student_club?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true&useSSL=false
 DB_USERNAME=root
 DB_PASSWORD=你的MySQL密码
 ```
+
+## 配置文件说明
+
+后端配置文件位于 `backend/src/main/resources/`：
+
+- `application.yml`：公共配置文件，包含端口、时区、MyBatis-Plus、JWT 等通用配置。默认激活 `dev` 环境：
+
+```yaml
+spring:
+  profiles:
+    active: ${SPRING_PROFILES_ACTIVE:dev}
+```
+
+一般不要在这个文件里写死数据库账号密码。需要切换环境时，优先通过 `SPRING_PROFILES_ACTIVE` 指定。
+
+- `application-dev.yml`：本地开发配置，默认连接本机 MySQL 的 `student_club` 数据库，账号密码为 `root/root`。适合在自己电脑上直接运行项目。
+
+- `application-prod.yml`：生产或部署环境配置，不直接写死数据库地址和密码，而是读取环境变量：
+
+```yaml
+spring:
+  datasource:
+    url: ${DB_URL}
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
+```
+
+PowerShell 示例：
+
+```powershell
+$env:SPRING_PROFILES_ACTIVE="prod"
+$env:DB_URL="jdbc:mysql://127.0.0.1:3306/student_club?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true&useSSL=false"
+$env:DB_USERNAME="root"
+$env:DB_PASSWORD="你的MySQL密码"
+```
+
+如果只是本地测试，直接使用默认 `dev` 配置即可；如果部署到服务器或需要隐藏密码，使用 `prod` 配置和环境变量。
 
 测试账号默认密码均为 `123456`：
 

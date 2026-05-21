@@ -11,8 +11,10 @@
           <span>{{ item.label }}</span>
         </el-menu-item>
       </el-menu>
-      <el-button style="width:100%;margin-top:18px" :icon="HomeFilled" @click="$router.push('/')">返回首页</el-button>
-      <el-button style="width:100%;margin-top:10px" :icon="SwitchButton" @click="logout">退出登录</el-button>
+      <div class="sidebar-actions">
+        <el-button :icon="HomeFilled" @click="$router.push('/')">返回首页</el-button>
+        <el-button :icon="SwitchButton" @click="logout">退出登录</el-button>
+      </div>
     </aside>
 
     <main class="content">
@@ -140,15 +142,17 @@
           <el-table-column label="状态" width="100">
             <template #default="{ row }"><el-tag :type="enableType(row.status)">{{ row.status === 1 ? '正常' : '已取消' }}</el-tag></template>
           </el-table-column>
-          <el-table-column label="操作" width="300" fixed="right">
+          <el-table-column label="操作" width="360" fixed="right">
             <template #default="{ row }">
-              <el-button size="small" :icon="Edit" @click="openActivity(row)">编辑</el-button>
-              <el-button size="small" type="primary" @click="openSignupReview(row)">报名审核</el-button>
-              <el-button size="small" type="success" @click="openCheckins(row)">签到</el-button>
-              <el-button size="small" :type="row.status === 1 ? 'warning' : 'success'" @click="toggleActivity(row)">
-                {{ row.status === 1 ? '取消' : '启用' }}
-              </el-button>
-              <el-button size="small" type="danger" @click="removeActivity(row)">删除</el-button>
+              <div class="table-actions">
+                <el-button size="small" :icon="Edit" @click="openActivity(row)">编辑</el-button>
+                <el-button size="small" type="primary" @click="openSignupReview(row)">报名审核</el-button>
+                <el-button size="small" type="success" @click="openCheckins(row)">签到</el-button>
+                <el-button size="small" :type="row.status === 1 ? 'warning' : 'success'" @click="toggleActivity(row)">
+                  {{ row.status === 1 ? '取消' : '启用' }}
+                </el-button>
+                <el-button size="small" type="danger" @click="removeActivity(row)">删除</el-button>
+              </div>
             </template>
           </el-table-column>
         </el-table>
