@@ -5,11 +5,15 @@ import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.example.club.entity.GroupMember;
 import com.example.club.entity.InterestGroup;
 import com.example.club.entity.Notice;
+import com.example.club.entity.User;
 import com.example.club.exception.BusinessException;
 import com.example.club.mapper.GroupMemberMapper;
 import com.example.club.mapper.InterestGroupMapper;
 import com.example.club.mapper.NoticeMapper;
+import com.example.club.mapper.UserMapper;
+import com.example.club.service.MessageService;
 import com.example.club.service.NoticeService;
+import com.example.club.service.OperationLogService;
 import com.example.club.utils.AuthContext;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -21,6 +25,9 @@ import java.util.List;
 public class NoticeServiceImpl extends ServiceImpl<NoticeMapper, Notice> implements NoticeService {
     private final InterestGroupMapper groupMapper;
     private final GroupMemberMapper memberMapper;
+    private final UserMapper userMapper;
+    private final MessageService messageService;
+    private final OperationLogService operationLogService;
 
     @Override
     public void publish(Notice notice) {
@@ -29,6 +36,8 @@ public class NoticeServiceImpl extends ServiceImpl<NoticeMapper, Notice> impleme
         notice.setStatus(1);
         notice.setTopFlag(notice.getTopFlag() == null ? 0 : notice.getTopFlag());
         save(notice);
+        sendNoticeMessages(notice);
+        operationLogService.record("NOTICE", "PUBLISH", notice.getId(), "发布公告：" + notice.getTitle());
     }
 
     @Override
@@ -41,6 +50,7 @@ public class NoticeServiceImpl extends ServiceImpl<NoticeMapper, Notice> impleme
         checkWritable(notice);
         notice.setPublisherId(old.getPublisherId());
         updateById(notice);
+        operationLogService.record("NOTICE", "UPDATE", notice.getId(), "修改公告：" + notice.getTitle());
     }
 
     @Override
@@ -51,6 +61,7 @@ public class NoticeServiceImpl extends ServiceImpl<NoticeMapper, Notice> impleme
         }
         checkWritable(old);
         removeById(id);
+        operationLogService.record("NOTICE", "DELETE", id, "删除公告：" + old.getTitle());
     }
 
     @Override
@@ -98,5 +109,19 @@ public class NoticeServiceImpl extends ServiceImpl<NoticeMapper, Notice> impleme
         if (!AuthContext.hasRole("ADMIN") && !group.getLeaderId().equals(AuthContext.userId())) {
             throw new BusinessException(403, "只能管理自己小组的公告");
         }
+    }
+
+    private void sendNoticeMessages(Notice notice) {
+        List<Long> receiverIds;
+        if ("SYSTEM".equals(notice.getNoticeType())) {
+            receiverIds = userMapper.selectList(new LambdaQueryWrapper<User>().eq(User::getStatus, 1))
+                    .stream().map(User::getId).toList();
+        } else {
+            receiverIds = memberMapper.selectList(new LambdaQueryWrapper<GroupMember>()
+                            .eq(GroupMember::getGroupId, notice.getGroupId())
+                            .eq(GroupMember::getStatus, 1))
+                    .stream().map(GroupMember::getUserId).toList();
+        }
+        messageService.sendBatch(receiverIds, "新公告：" + notice.getTitle(), notice.getContent(), "NOTICE", notice.getId());
     }
 }

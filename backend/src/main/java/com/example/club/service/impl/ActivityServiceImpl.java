@@ -7,6 +7,7 @@ import com.example.club.common.PageResult;
 import com.example.club.dto.ActivityQueryDTO;
 import com.example.club.dto.ReviewDTO;
 import com.example.club.entity.Activity;
+import com.example.club.entity.ActivityCheckin;
 import com.example.club.entity.ActivitySignup;
 import com.example.club.entity.GroupMember;
 import com.example.club.entity.InterestGroup;
@@ -17,7 +18,10 @@ import com.example.club.mapper.ActivitySignupMapper;
 import com.example.club.mapper.GroupMemberMapper;
 import com.example.club.mapper.InterestGroupMapper;
 import com.example.club.mapper.UserMapper;
+import com.example.club.service.ActivityCheckinService;
 import com.example.club.service.ActivityService;
+import com.example.club.service.MessageService;
+import com.example.club.service.OperationLogService;
 import com.example.club.utils.AuthContext;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -32,6 +36,9 @@ public class ActivityServiceImpl extends ServiceImpl<ActivityMapper, Activity> i
     private final GroupMemberMapper groupMemberMapper;
     private final ActivitySignupMapper signupMapper;
     private final UserMapper userMapper;
+    private final ActivityCheckinService checkinService;
+    private final MessageService messageService;
+    private final OperationLogService operationLogService;
 
     @Override
     public PageResult<Activity> pageActivities(ActivityQueryDTO query, boolean publicOnly) {
@@ -86,6 +93,7 @@ public class ActivityServiceImpl extends ServiceImpl<ActivityMapper, Activity> i
         activity.setCurrentParticipants(0);
         activity.setStatus(1);
         save(activity);
+        operationLogService.record("ACTIVITY", "CREATE", activity.getId(), "发布活动：" + activity.getTitle());
     }
 
     @Override
@@ -98,6 +106,7 @@ public class ActivityServiceImpl extends ServiceImpl<ActivityMapper, Activity> i
         activity.setCreatorId(old.getCreatorId());
         activity.setCurrentParticipants(old.getCurrentParticipants());
         updateById(activity);
+        operationLogService.record("ACTIVITY", "UPDATE", activity.getId(), "修改活动：" + activity.getTitle());
     }
 
     @Override
@@ -108,6 +117,7 @@ public class ActivityServiceImpl extends ServiceImpl<ActivityMapper, Activity> i
         }
         checkGroupOwner(old.getGroupId());
         removeById(id);
+        operationLogService.record("ACTIVITY", "DELETE", id, "删除活动：" + old.getTitle());
     }
 
     @Override
@@ -172,6 +182,11 @@ public class ActivityServiceImpl extends ServiceImpl<ActivityMapper, Activity> i
         signup.setReviewRemark(dto.getRemark());
         signup.setReviewTime(LocalDateTime.now());
         signupMapper.updateById(signup);
+        String statusText = dto.getStatus() == 1 ? "通过" : "拒绝";
+        messageService.send(signup.getUserId(), "活动报名" + statusText,
+                "你报名的“" + activity.getTitle() + "”已审核" + statusText + "。",
+                "ACTIVITY_SIGNUP", signup.getId());
+        operationLogService.record("ACTIVITY", "REVIEW_SIGNUP", signup.getId(), "审核活动报名：" + statusText);
     }
 
     @Override
@@ -193,6 +208,26 @@ public class ActivityServiceImpl extends ServiceImpl<ActivityMapper, Activity> i
         List<ActivitySignup> signups = signupMapper.selectList(new LambdaQueryWrapper<ActivitySignup>().eq(ActivitySignup::getActivityId, activityId));
         signups.forEach(this::fillSignupNames);
         return signups;
+    }
+
+    @Override
+    public List<ActivityCheckin> checkins(Long activityId) {
+        return checkinService.activityCheckins(activityId);
+    }
+
+    @Override
+    public void checkin(Long activityId, Long userId) {
+        checkinService.checkin(activityId, userId);
+    }
+
+    @Override
+    public void batchCheckin(Long activityId, List<Long> userIds) {
+        checkinService.batchCheckin(activityId, userIds);
+    }
+
+    @Override
+    public List<ActivityCheckin> myCheckins() {
+        return checkinService.mine();
     }
 
     private void fillSignupNames(ActivitySignup signup) {

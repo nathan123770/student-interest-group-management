@@ -31,9 +31,13 @@ sql/       建表和测试数据
 - 登录学生/负责人首页只展示自己已加入小组的近期活动，未登录首页展示公开近期活动
 - 防重复申请、防重复报名、小组满员控制、活动满员控制、活动开始后禁止报名
 - 系统公告和小组公告
+- 站内消息通知：审核结果、活动报名、公告发布后自动通知相关用户
+- 活动签到：负责人/管理员可为已通过报名的学生签到，学生可查看自己的签到状态
+- 操作日志：记录后台关键操作，管理员可查询审计记录
+- 运营统计图表：展示待处理事项、未读消息、签到数量和近 7 天运营趋势
 - 分类管理、用户管理、基础数据统计
 - 前台页面：小组浏览、搜索、申请加入、活动报名
-- 后台页面：统计、小组、申请、活动、公告、分类、用户管理
+- 后台页面：统计、小组、申请、活动、签到、公告、分类、用户、操作日志管理
 
 ## 数据库初始化
 
@@ -128,6 +132,10 @@ npm.cmd run dev
 - `GET /api/activities/signups/mine` 我的活动报名申请
 - `GET /api/activities/{id}/signups` 活动报名列表
 - `POST /api/activities/signups/{signupId}/review` 审核活动报名申请
+- `GET /api/activities/{id}/checkins` 活动签到列表
+- `POST /api/activities/{id}/checkins/{userId}` 单个学生签到
+- `POST /api/activities/{id}/checkins/batch` 批量签到
+- `GET /api/activities/checkins/mine` 我的签到状态
 
 公告、分类、统计：
 
@@ -138,11 +146,36 @@ npm.cmd run dev
 - `GET /api/categories` 分类列表
 - `POST /api/categories` 新增分类
 - `GET /api/stats/overview` 管理员统计概览
+- `GET /api/stats/trends` 近 7 天运营趋势
 - `GET /api/roles` 角色列表
 - `POST /api/roles/assign?userId=1` 分配用户角色
+
+消息与日志：
+
+- `GET /api/messages/mine` 我的站内消息
+- `POST /api/messages/{id}/read` 标记单条消息已读
+- `POST /api/messages/read-all` 标记全部消息已读
+- `GET /api/operation-logs/page` 操作日志分页查询，仅管理员可访问
+
+## 升级功能规划
+
+一期运营增强 MVP 已覆盖：
+
+- 站内消息：加入小组审核、建组审核、活动报名审核、公告发布会生成系统内消息。
+- 活动签到：签到基于已通过的活动报名记录，负责人只能管理自己小组的活动，管理员可管理全部活动。
+- 操作日志：记录小组、活动、公告、分类、用户状态、审核、签到等关键后台动作。
+- 数据图表：后台统计页展示核心指标和近 7 天小组、活动、申请、签到趋势。
+
+二期可继续扩展：
+
+- Spring Security 与菜单级权限，替换当前轻量 JWT 拦截器角色判断。
+- 更完整的审批流配置，例如多级审核、撤回、转交、超时提醒。
+- 消息中心增强为实时推送，支持 WebSocket、邮件或短信通知。
+- 签到方式扩展为二维码、定位、签到码和补签审批。
+- 数据可视化升级为 ECharts 仪表盘，增加分类分布、活跃排行和导出报表。
 
 ## 说明与扩展建议
 
 - 当前权限采用 JWT + 拦截器 + 角色判断，适合课程设计和中小型系统演示。
-- 后续可扩展为 Spring Security、菜单级权限、操作日志、文件上传、站内消息、审批流、报名签到、数据可视化图表。
+- 后续可扩展为 Spring Security、菜单级权限、文件上传增强、站内实时消息、审批流、二维码签到、数据可视化报表。
 - 前端后台已按 Element Plus 管理系统形态组织，前台使用更友好的门户布局。

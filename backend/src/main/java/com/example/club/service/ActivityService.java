@@ -5,6 +5,7 @@ import com.example.club.common.PageResult;
 import com.example.club.dto.ActivityQueryDTO;
 import com.example.club.dto.ReviewDTO;
 import com.example.club.entity.Activity;
+import com.example.club.entity.ActivityCheckin;
 import com.example.club.entity.ActivitySignup;
 
 import java.util.List;
@@ -19,4 +20,8 @@ public interface ActivityService extends IService<Activity> {
     void reviewSignup(Long signupId, ReviewDTO dto);
     List<ActivitySignup> mySignups();
     List<ActivitySignup> signups(Long activityId);
+    List<ActivityCheckin> checkins(Long activityId);
+    void checkin(Long activityId, Long userId);
+    void batchCheckin(Long activityId, List<Long> userIds);
+    List<ActivityCheckin> myCheckins();
 }

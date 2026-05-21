@@ -28,6 +28,33 @@
           <div class="stat"><span>小组数</span><strong>{{ overview.groupCount || 0 }}</strong></div>
           <div class="stat"><span>活动数</span><strong>{{ overview.activityCount || 0 }}</strong></div>
           <div class="stat"><span>待审申请</span><strong>{{ overview.pendingApplyCount || 0 }}</strong></div>
+          <div class="stat"><span>待审报名</span><strong>{{ overview.pendingSignupCount || 0 }}</strong></div>
+          <div class="stat"><span>签到数</span><strong>{{ overview.checkinCount || 0 }}</strong></div>
+          <div class="stat"><span>操作日志</span><strong>{{ overview.operationLogCount || 0 }}</strong></div>
+          <div class="stat"><span>未读消息</span><strong>{{ overview.unreadMessageCount || 0 }}</strong></div>
+        </div>
+        <div class="ops-panel">
+          <div class="toolbar compact-toolbar">
+            <h3>近 7 天运营趋势</h3>
+            <span class="muted">小组、活动、申请和签到的每日变化</span>
+          </div>
+          <div class="trend-grid">
+            <div v-for="item in trendList" :key="item.date" class="trend-day">
+              <span>{{ item.date.slice(5) }}</span>
+              <div class="trend-bars">
+                <i class="bar group" :style="{ height: barHeight(item.groupCount) }" title="小组" />
+                <i class="bar activity" :style="{ height: barHeight(item.activityCount) }" title="活动" />
+                <i class="bar apply" :style="{ height: barHeight(item.applyCount) }" title="申请" />
+                <i class="bar checkin" :style="{ height: barHeight(item.checkinCount) }" title="签到" />
+              </div>
+            </div>
+          </div>
+          <div class="trend-legend">
+            <span><i class="dot group" />小组</span>
+            <span><i class="dot activity" />活动</span>
+            <span><i class="dot apply" />申请</span>
+            <span><i class="dot checkin" />签到</span>
+          </div>
         </div>
       </section>
 
@@ -117,6 +144,7 @@
             <template #default="{ row }">
               <el-button size="small" :icon="Edit" @click="openActivity(row)">编辑</el-button>
               <el-button size="small" type="primary" @click="openSignupReview(row)">报名审核</el-button>
+              <el-button size="small" type="success" @click="openCheckins(row)">签到</el-button>
               <el-button size="small" :type="row.status === 1 ? 'warning' : 'success'" @click="toggleActivity(row)">
                 {{ row.status === 1 ? '取消' : '启用' }}
               </el-button>
@@ -199,6 +227,27 @@
           </el-table-column>
         </el-table>
       </section>
+
+      <section v-if="active === 'logs'">
+        <div class="toolbar">
+          <div>
+            <span class="eyebrow"><el-icon><DataBoard /></el-icon>操作日志</span>
+            <h2>后台关键操作记录</h2>
+          </div>
+          <el-button :icon="Refresh" @click="loadLogs">刷新</el-button>
+        </div>
+        <el-table :data="logPage.records" empty-text="暂无操作日志">
+          <el-table-column prop="module" label="模块" width="120" />
+          <el-table-column prop="action" label="动作" width="130" />
+          <el-table-column prop="operatorId" label="操作者" width="100" />
+          <el-table-column prop="operatorRoles" label="角色" width="140" />
+          <el-table-column prop="detail" label="详情" min-width="220" />
+          <el-table-column prop="ip" label="IP" width="130" />
+          <el-table-column label="时间" min-width="160">
+            <template #default="{ row }">{{ formatDate(row.createTime) }}</template>
+          </el-table-column>
+        </el-table>
+      </section>
     </main>
   </div>
 
@@ -234,6 +283,29 @@
         <template #default="{ row }">
           <el-button v-if="row.status === 0" type="success" size="small" @click="reviewSignup(row.id, 1)">通过</el-button>
           <el-button v-if="row.status === 0" type="danger" size="small" @click="reviewSignup(row.id, 2)">拒绝</el-button>
+        </template>
+      </el-table-column>
+    </el-table>
+  </el-dialog>
+
+  <el-dialog v-model="checkinDialog" :title="`${currentActivity?.title || ''} 签到管理`" width="780px">
+    <div class="toolbar compact-toolbar">
+      <span class="muted">仅展示已通过报名审核的学生</span>
+      <el-button type="primary" :disabled="selectedCheckinUsers.length === 0" @click="batchCheckin">批量签到</el-button>
+    </div>
+    <el-table :data="checkinList" empty-text="暂无可签到学生" @selection-change="selectedCheckinUsers = $event.map(item => item.userId)">
+      <el-table-column type="selection" width="48" :selectable="row => row.status !== 1" />
+      <el-table-column prop="userName" label="学生" min-width="140" />
+      <el-table-column label="状态" width="110">
+        <template #default="{ row }"><el-tag :type="row.status === 1 ? 'success' : 'info'">{{ row.status === 1 ? '已签到' : '未签到' }}</el-tag></template>
+      </el-table-column>
+      <el-table-column label="签到时间" min-width="160">
+        <template #default="{ row }">{{ row.checkinTime ? formatDate(row.checkinTime) : '-' }}</template>
+      </el-table-column>
+      <el-table-column label="操作" width="120">
+        <template #default="{ row }">
+          <el-button v-if="row.status !== 1" size="small" type="success" @click="singleCheckin(row.userId)">签到</el-button>
+          <el-tag v-else size="small" type="success">完成</el-tag>
         </template>
       </el-table-column>
     </el-table>
@@ -316,7 +388,7 @@ import { computed, onMounted, reactive, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Bell, Calendar, Checked, Collection, DataBoard, Edit, Grid, HomeFilled, Plus, Refresh, SwitchButton, TrendCharts, User } from '@element-plus/icons-vue'
-import { activities, activitySignups, allNotices, categories, deleteActivity, deleteCategory, deleteGroup, deleteNotice, groupApplies, groupMembers, groups, managedNotices, removeMember, reviewActivitySignup, reviewApply, reviewGroup, saveActivity, saveCategory, saveGroup, saveNotice, setUserStatus, stats, uploadImage, users } from '../api'
+import { activities, activityCheckins, activitySignups, allNotices, batchCheckinActivity, categories, checkinActivity, deleteActivity, deleteCategory, deleteGroup, deleteNotice, groupApplies, groupMembers, groups, managedNotices, operationLogs, removeMember, reviewActivitySignup, reviewApply, reviewGroup, saveActivity, saveCategory, saveGroup, saveNotice, setUserStatus, statTrends, stats, uploadImage, users } from '../api'
 import { formatDate } from '../utils/format'
 
 const router = useRouter()
@@ -330,7 +402,8 @@ const menus = computed(() => isAdmin
       { key: 'activities', label: '全部活动管理', icon: Calendar },
       { key: 'notices', label: '系统公告管理', icon: Bell },
       { key: 'categories', label: '分类管理', icon: Grid },
-      { key: 'users', label: '用户管理', icon: User }
+      { key: 'users', label: '用户管理', icon: User },
+      { key: 'logs', label: '操作日志', icon: DataBoard }
     ]
   : [
       { key: 'groups', label: '我的小组', icon: Collection },
@@ -340,6 +413,7 @@ const menus = computed(() => isAdmin
     ])
 const active = ref(menus.value[0]?.key || 'groups')
 const overview = ref({})
+const trendList = ref([])
 const groupPage = ref({ records: [] })
 const activityPage = ref({ records: [] })
 const categoryList = ref([])
@@ -348,6 +422,9 @@ const noticeList = ref([])
 const applyList = ref([])
 const memberList = ref([])
 const signupList = ref([])
+const checkinList = ref([])
+const selectedCheckinUsers = ref([])
+const logPage = ref({ records: [] })
 const applyGroupId = ref(null)
 const groupDialog = ref(false)
 const activityDialog = ref(false)
@@ -355,6 +432,7 @@ const noticeDialog = ref(false)
 const categoryDialog = ref(false)
 const memberDialog = ref(false)
 const signupDialog = ref(false)
+const checkinDialog = ref(false)
 const currentGroup = ref(null)
 const currentActivity = ref(null)
 const groupForm = reactive({})
@@ -369,7 +447,14 @@ const auditText = status => ({ 0: '待审核', 1: '已通过', 2: '已拒绝' }[
 const auditType = status => ({ 0: 'warning', 1: 'success', 2: 'danger' }[status] || 'info')
 const enableText = status => status === 1 ? '已启用' : '已禁用'
 const enableType = status => status === 1 ? 'success' : 'info'
-const loadOverview = async () => { if (isAdmin) overview.value = await stats() }
+const maxTrendValue = computed(() => Math.max(1, ...trendList.value.flatMap(item => [item.groupCount, item.activityCount, item.applyCount, item.checkinCount])))
+const barHeight = value => `${Math.max(8, Math.round((value / maxTrendValue.value) * 72))}px`
+const loadOverview = async () => {
+  if (isAdmin) {
+    overview.value = await stats()
+    trendList.value = await statTrends()
+  }
+}
 const loadGroups = async () => {
   groupPage.value = await groups({ page: 1, size: 100 })
   if (!applyGroupId.value && groupPage.value.records.length > 0) applyGroupId.value = groupPage.value.records[0].id
@@ -378,6 +463,7 @@ const loadActivities = async () => { activityPage.value = await activities({ pag
 const loadCategories = async () => { categoryList.value = await categories() }
 const loadUsers = async () => { if (isAdmin) userList.value = await users() }
 const loadNotices = async () => { noticeList.value = isAdmin ? await allNotices() : await managedNotices() }
+const loadLogs = async () => { if (isAdmin) logPage.value = await operationLogs({ page: 1, size: 100 }) }
 const loadApplies = async () => {
   if (!applyGroupId.value) {
     applyList.value = []
@@ -457,6 +543,25 @@ const reviewSignup = async (id, status) => {
   signupList.value = await activitySignups(currentActivity.value.id)
   await loadActivities()
 }
+const openCheckins = async activity => {
+  currentActivity.value = activity
+  selectedCheckinUsers.value = []
+  checkinList.value = await activityCheckins(activity.id)
+  checkinDialog.value = true
+}
+const singleCheckin = async userId => {
+  await checkinActivity(currentActivity.value.id, userId)
+  ElMessage.success('签到成功')
+  checkinList.value = await activityCheckins(currentActivity.value.id)
+  await loadOverview()
+}
+const batchCheckin = async () => {
+  await batchCheckinActivity(currentActivity.value.id, selectedCheckinUsers.value)
+  ElMessage.success('批量签到成功')
+  selectedCheckinUsers.value = []
+  checkinList.value = await activityCheckins(currentActivity.value.id)
+  await loadOverview()
+}
 const openNotice = row => {
   Object.assign(noticeForm, row || { id: null, title: '', content: '', noticeType: isAdmin ? 'SYSTEM' : 'GROUP', groupId: approvedGroups.value[0]?.id, topFlag: 0, status: 1 })
   noticeDialog.value = true
@@ -499,6 +604,7 @@ watch(active, async key => {
   if (key === 'notices') await loadNotices()
   if (key === 'categories') await loadCategories()
   if (key === 'users') await loadUsers()
+  if (key === 'logs') await loadLogs()
   if (key === 'applies') { await loadGroups(); await loadApplies() }
 })
 

@@ -5,6 +5,7 @@ import com.example.club.common.Result;
 import com.example.club.dto.ActivityQueryDTO;
 import com.example.club.dto.ReviewDTO;
 import com.example.club.entity.Activity;
+import com.example.club.entity.ActivityCheckin;
 import com.example.club.entity.ActivitySignup;
 import com.example.club.service.ActivityService;
 import lombok.RequiredArgsConstructor;
@@ -76,5 +77,27 @@ public class ActivityController {
     @GetMapping("/{id}/signups")
     public Result<List<ActivitySignup>> signups(@PathVariable Long id) {
         return Result.ok(activityService.signups(id));
+    }
+
+    @GetMapping("/{id}/checkins")
+    public Result<List<ActivityCheckin>> checkins(@PathVariable Long id) {
+        return Result.ok(activityService.checkins(id));
+    }
+
+    @PostMapping("/{id}/checkins/{userId}")
+    public Result<Void> checkin(@PathVariable Long id, @PathVariable Long userId) {
+        activityService.checkin(id, userId);
+        return Result.ok();
+    }
+
+    @PostMapping("/{id}/checkins/batch")
+    public Result<Void> batchCheckin(@PathVariable Long id, @RequestBody List<Long> userIds) {
+        activityService.batchCheckin(id, userIds);
+        return Result.ok();
+    }
+
+    @GetMapping("/checkins/mine")
+    public Result<List<ActivityCheckin>> myCheckins() {
+        return Result.ok(activityService.myCheckins());
     }
 }

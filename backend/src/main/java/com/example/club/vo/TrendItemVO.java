@@ -5,13 +5,10 @@ import lombok.Data;
 
 @Data
 @AllArgsConstructor
-public class StatsVO {
-    private long userCount;
+public class TrendItemVO {
+    private String date;
     private long groupCount;
     private long activityCount;
-    private long pendingApplyCount;
-    private long pendingSignupCount;
-    private long unreadMessageCount;
+    private long applyCount;
     private long checkinCount;
-    private long operationLogCount;
 }

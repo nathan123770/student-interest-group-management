@@ -17,6 +17,8 @@ import com.example.club.mapper.RoleMapper;
 import com.example.club.mapper.UserMapper;
 import com.example.club.mapper.UserRoleMapper;
 import com.example.club.service.InterestGroupService;
+import com.example.club.service.MessageService;
+import com.example.club.service.OperationLogService;
 import com.example.club.utils.AuthContext;
 import com.example.club.vo.JoinedGroupVO;
 import lombok.RequiredArgsConstructor;
@@ -33,6 +35,8 @@ public class InterestGroupServiceImpl extends ServiceImpl<InterestGroupMapper, I
     private final RoleMapper roleMapper;
     private final UserRoleMapper userRoleMapper;
     private final UserMapper userMapper;
+    private final MessageService messageService;
+    private final OperationLogService operationLogService;
 
     @Override
     public PageResult<InterestGroup> pageGroups(GroupQueryDTO query, boolean publicOnly) {
@@ -68,6 +72,7 @@ public class InterestGroupServiceImpl extends ServiceImpl<InterestGroupMapper, I
             ensureLeaderRole(group.getLeaderId());
             ensureLeaderMember(group);
         }
+        operationLogService.record("GROUP", "CREATE", group.getId(), "创建小组：" + group.getName());
     }
 
     @Override
@@ -77,12 +82,16 @@ public class InterestGroupServiceImpl extends ServiceImpl<InterestGroupMapper, I
         group.setLeaderId(old.getLeaderId());
         group.setCurrentMembers(old.getCurrentMembers());
         updateById(group);
+        operationLogService.record("GROUP", "UPDATE", group.getId(), "修改小组：" + group.getName());
     }
 
     @Override
     @Transactional
     public void reviewGroup(Long id, Integer auditStatus) {
         AuthContext.requireAny("ADMIN");
+        if (auditStatus == null || (auditStatus != 1 && auditStatus != 2)) {
+            throw new BusinessException("审核状态必须为通过或拒绝");
+        }
         InterestGroup group = getById(id);
         if (group == null) {
             throw new BusinessException("兴趣小组不存在");
@@ -93,6 +102,11 @@ public class InterestGroupServiceImpl extends ServiceImpl<InterestGroupMapper, I
             ensureLeaderRole(group.getLeaderId());
             ensureLeaderMember(group);
         }
+        String statusText = auditStatus == 1 ? "通过" : "拒绝";
+        messageService.send(group.getLeaderId(), "建组申请" + statusText,
+                "你申请创建的“" + group.getName() + "”已审核" + statusText + "。",
+                "GROUP_REVIEW", group.getId());
+        operationLogService.record("GROUP", "REVIEW", group.getId(), "审核建组申请：" + statusText);
     }
 
     @Override

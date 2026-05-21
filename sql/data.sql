@@ -46,6 +46,17 @@ INSERT INTO activity (id, group_id, title, content, location, start_time, end_ti
 
 INSERT INTO activity_signup (activity_id, user_id, status, reviewer_id, review_remark, review_time) VALUES (1, 3, 1, 2, '报名通过', NOW());
 
+INSERT INTO activity_checkin (activity_id, user_id, status, checkin_method, operator_id) VALUES
+(1, 3, 1, 'MANUAL', 2);
+
 INSERT INTO notice (title, content, notice_type, group_id, publisher_id, top_flag, status) VALUES
 ('系统上线通知', '学生兴趣小组管理系统试运行，欢迎体验。', 'SYSTEM', NULL, 1, 1, 1),
 ('AI 编程社本周安排', '本周六下午进行 Spring Boot 工作坊，请成员准时参加。', 'GROUP', 1, 2, 0, 1);
+
+INSERT INTO message (receiver_id, title, content, business_type, business_id, read_status) VALUES
+(3, '活动报名通过', '你报名的“Spring Boot 入门工作坊”已审核通过。', 'ACTIVITY_SIGNUP', 1, 0),
+(3, '小组公告', 'AI 编程社发布了新公告：本周六下午进行 Spring Boot 工作坊。', 'NOTICE', 2, 1);
+
+INSERT INTO operation_log (operator_id, operator_roles, module, action, business_id, result, ip, detail) VALUES
+(2, 'LEADER', 'ACTIVITY', 'CHECKIN', 1, 'SUCCESS', '127.0.0.1', '演示数据：为张同学完成活动签到'),
+(1, 'ADMIN', 'NOTICE', 'PUBLISH', 1, 'SUCCESS', '127.0.0.1', '演示数据：发布系统上线通知');

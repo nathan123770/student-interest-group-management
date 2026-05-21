@@ -106,12 +106,13 @@ import { computed, onMounted, reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Collection, Compass, HomeFilled, Plus, School, Search, Setting, SwitchButton, User, View } from '@element-plus/icons-vue'
-import { applyJoin, categories, me, publicGroups } from '../api'
+import { applyJoin, categories, joinedGroups, me, publicGroups } from '../api'
 
 const router = useRouter()
 const defaultCover = 'https://images.unsplash.com/photo-1524995997946-a1c2e315a42f'
 const query = reactive({ page: 1, size: 12, name: '', categoryId: null })
 const groupPage = ref({ records: [] })
+const joinedGroupIds = ref(new Set())
 const categoryList = ref([])
 const detailDialog = ref(false)
 const selectedGroup = ref(null)
@@ -152,7 +153,14 @@ const refreshSession = async () => {
   localStorage.setItem('roles', JSON.stringify(roles.value))
 }
 const loadGroups = async () => {
-  groupPage.value = await publicGroups(query)
+  const requestQuery = isLogin.value ? { ...query, size: 100 } : query
+  const data = await publicGroups(requestQuery)
+  const records = (data.records || []).filter(group => !joinedGroupIds.value.has(group.id))
+  groupPage.value = {
+    ...data,
+    total: records.length,
+    records: records.slice(0, query.size)
+  }
 }
 const apply = async group => {
   if (!isLogin.value) {
@@ -180,6 +188,10 @@ const logout = () => {
 
 onMounted(async () => {
   await refreshSession()
+  if (isLogin.value) {
+    const joined = await joinedGroups()
+    joinedGroupIds.value = new Set(joined.map(group => group.id))
+  }
   categoryList.value = await categories()
   await loadGroups()
 })

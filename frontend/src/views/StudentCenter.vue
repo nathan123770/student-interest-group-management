@@ -67,7 +67,7 @@
         <div class="quick-actions">
           <el-button type="primary" :icon="Collection" @click="$router.push('/my-groups')">我的小组</el-button>
           <el-button :icon="Plus" @click="openCreateGroup">申请创建小组</el-button>
-          <el-button :icon="Bell" @click="activeTab = 'notices'">查看公告</el-button>
+          <el-button :icon="Bell" @click="activeTab = 'messages'">查看消息</el-button>
           <el-button :icon="HomeFilled" @click="$router.push('/')">返回首页</el-button>
         </div>
       </article>
@@ -149,6 +149,43 @@
           </el-table>
         </el-tab-pane>
 
+        <el-tab-pane label="消息通知" name="messages">
+          <div class="toolbar compact-toolbar">
+            <span class="muted">未读消息会优先展示</span>
+            <el-button size="small" :disabled="unreadMessages.length === 0" @click="markAllMessagesRead">全部已读</el-button>
+          </div>
+          <el-empty v-if="messageList.length === 0" description="暂无消息" />
+          <div v-else class="message-list">
+            <article v-for="m in messageList" :key="m.id" class="message-item" :class="{ unread: m.readStatus === 0 }">
+              <div>
+                <strong>{{ m.title }}</strong>
+                <p>{{ m.content }}</p>
+                <span class="muted">{{ formatDate(m.createTime) }}</span>
+              </div>
+              <el-button v-if="m.readStatus === 0" size="small" type="primary" plain @click="markMessageRead(m.id)">标为已读</el-button>
+              <el-tag v-else size="small" type="info">已读</el-tag>
+            </article>
+          </div>
+        </el-tab-pane>
+
+        <el-tab-pane label="我的签到" name="checkins">
+          <el-empty v-if="checkinList.length === 0" description="暂无签到记录" />
+          <el-table v-else :data="checkinList">
+            <el-table-column prop="activityTitle" label="活动" min-width="180" />
+            <el-table-column label="开始时间" min-width="150">
+              <template #default="{ row }">{{ formatDate(row.activityStartTime) }}</template>
+            </el-table-column>
+            <el-table-column label="状态" width="110">
+              <template #default="{ row }">
+                <el-tag :type="row.status === 1 ? 'success' : 'info'">{{ row.status === 1 ? '已签到' : '未签到' }}</el-tag>
+              </template>
+            </el-table-column>
+            <el-table-column label="签到时间" min-width="150">
+              <template #default="{ row }">{{ row.checkinTime ? formatDate(row.checkinTime) : '-' }}</template>
+            </el-table-column>
+          </el-table>
+        </el-tab-pane>
+
         <el-tab-pane label="公告通知" name="notices">
           <el-empty v-if="noticeList.length === 0" description="暂无公告" />
           <el-timeline v-else>
@@ -200,7 +237,7 @@ import { computed, onMounted, reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { Bell, Collection, HomeFilled, Plus, Setting, SwitchButton, User } from '@element-plus/icons-vue'
-import { categories, groups, me, myActivitySignups, myApplies, notices, publicActivities, publicGroups, saveGroup, uploadImage } from '../api'
+import { categories, groups, me, myActivityCheckins, myActivitySignups, myApplies, myMessages, notices, publicActivities, publicGroups, readAllMessages, readMessage, saveGroup, uploadImage } from '../api'
 import { formatDate } from '../utils/format'
 
 const router = useRouter()
@@ -209,6 +246,8 @@ const roles = ref(JSON.parse(localStorage.getItem('roles') || '[]'))
 const applyList = ref([])
 const signupList = ref([])
 const noticeList = ref([])
+const messageList = ref([])
+const checkinList = ref([])
 const categoryList = ref([])
 const publicGroupPage = ref({ records: [] })
 const publicActivityPage = ref({ records: [] })
@@ -237,10 +276,12 @@ const identityDesc = computed(() => {
 const pendingApplyCount = computed(() => applyList.value.filter(item => item.status === 0).length)
 const pendingSignupCount = computed(() => signupList.value.filter(item => item.status === 0).length)
 const pendingGroupCount = computed(() => myGroupPage.value.records.filter(item => item.auditStatus === 0).length)
+const unreadMessages = computed(() => messageList.value.filter(item => item.readStatus === 0))
 const todoItems = computed(() => [
   { label: '个加入申请待审核', count: pendingApplyCount.value },
   { label: '个活动报名待审核', count: pendingSignupCount.value },
-  { label: '个建组申请待审核', count: pendingGroupCount.value }
+  { label: '个建组申请待审核', count: pendingGroupCount.value },
+  { label: '条未读消息', count: unreadMessages.value.length }
 ].filter(item => item.count > 0))
 const groupNameMap = computed(() => {
   const map = {}
@@ -256,11 +297,11 @@ const activityNameMap = computed(() => {
 const applyRows = computed(() => applyList.value.map(item => ({ ...item, groupName: item.groupName || groupNameMap.value[item.groupId] || '未知小组' })))
 const signupRows = computed(() => signupList.value.map(item => ({ ...item, activityName: item.activityTitle || activityNameMap.value[item.activityId] || '未知活动' })))
 const recentItems = computed(() => {
-  const noticesFeed = noticeList.value.slice(0, 3).map(item => ({
+  const messageFeed = messageList.value.slice(0, 3).map(item => ({
     id: item.id,
-    type: 'notice',
-    typeText: item.noticeType === 'SYSTEM' ? '系统公告' : '小组公告',
-    tagType: item.noticeType === 'SYSTEM' ? 'primary' : 'success',
+    type: 'message',
+    typeText: item.readStatus === 0 ? '未读消息' : '消息',
+    tagType: item.readStatus === 0 ? 'warning' : 'info',
     title: item.title,
     desc: item.content || formatDate(item.createTime)
   }))
@@ -272,7 +313,7 @@ const recentItems = computed(() => {
     title: item.groupName,
     desc: `状态：${statusText(item.status)}${item.reviewRemark ? `，${item.reviewRemark}` : ''}`
   }))
-  return [...noticesFeed, ...applyFeed].slice(0, 3)
+  return [...messageFeed, ...applyFeed].slice(0, 3)
 })
 const statusText = status => ({ 0: '待审核', 1: '已通过', 2: '已拒绝' }[status] || '未知')
 const statusType = status => ({ 0: 'warning', 1: 'success', 2: 'danger' }[status] || 'info')
@@ -292,6 +333,16 @@ const uploadGroupCover = async ({ file }) => {
   const data = await uploadImage(file)
   groupForm.coverUrl = data.url
   ElMessage.success('封面上传成功')
+}
+const markMessageRead = async id => {
+  await readMessage(id)
+  ElMessage.success('消息已读')
+  messageList.value = await myMessages()
+}
+const markAllMessagesRead = async () => {
+  await readAllMessages()
+  ElMessage.success('全部消息已读')
+  messageList.value = await myMessages()
 }
 const loadMyGroups = async () => { myGroupPage.value = await groups({ page: 1, size: 50 }) }
 const refreshSession = async () => {
@@ -316,5 +367,7 @@ onMounted(async () => {
   applyList.value = await myApplies()
   signupList.value = await myActivitySignups()
   noticeList.value = await notices()
+  messageList.value = await myMessages()
+  checkinList.value = await myActivityCheckins()
 })
 </script>

@@ -7,6 +7,7 @@ import com.example.club.entity.GroupMember;
 import com.example.club.entity.InterestGroup;
 import com.example.club.exception.BusinessException;
 import com.example.club.service.InterestGroupService;
+import com.example.club.service.OperationLogService;
 import com.example.club.utils.AuthContext;
 import com.example.club.vo.JoinedGroupVO;
 import lombok.RequiredArgsConstructor;
@@ -19,6 +20,7 @@ import java.util.List;
 @RequiredArgsConstructor
 public class GroupController {
     private final InterestGroupService groupService;
+    private final OperationLogService operationLogService;
 
     @GetMapping("/public/page")
     public Result<PageResult<InterestGroup>> publicPage(GroupQueryDTO query) {
@@ -62,6 +64,7 @@ public class GroupController {
             throw new BusinessException(403, "只能删除自己创建或负责的小组");
         }
         groupService.removeById(id);
+        operationLogService.record("GROUP", "DELETE", id, "删除小组：" + group.getName());
         return Result.ok();
     }
 
@@ -85,6 +88,7 @@ public class GroupController {
     @DeleteMapping("/{groupId}/members/{userId}")
     public Result<Void> removeMember(@PathVariable Long groupId, @PathVariable Long userId) {
         groupService.removeMember(groupId, userId);
+        operationLogService.record("GROUP", "REMOVE_MEMBER", groupId, "移除小组成员：" + userId);
         return Result.ok();
     }
 }

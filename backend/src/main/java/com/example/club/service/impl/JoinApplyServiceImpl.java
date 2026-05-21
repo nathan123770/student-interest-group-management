@@ -14,6 +14,8 @@ import com.example.club.mapper.InterestGroupMapper;
 import com.example.club.mapper.JoinApplyMapper;
 import com.example.club.mapper.UserMapper;
 import com.example.club.service.JoinApplyService;
+import com.example.club.service.MessageService;
+import com.example.club.service.OperationLogService;
 import com.example.club.utils.AuthContext;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -28,6 +30,8 @@ public class JoinApplyServiceImpl extends ServiceImpl<JoinApplyMapper, JoinApply
     private final InterestGroupMapper groupMapper;
     private final GroupMemberMapper groupMemberMapper;
     private final UserMapper userMapper;
+    private final MessageService messageService;
+    private final OperationLogService operationLogService;
 
     @Override
     public void apply(JoinApplyDTO dto) {
@@ -56,6 +60,9 @@ public class JoinApplyServiceImpl extends ServiceImpl<JoinApplyMapper, JoinApply
     @Override
     @Transactional
     public void review(Long applyId, ReviewDTO dto) {
+        if (dto.getStatus() == null || (dto.getStatus() != 1 && dto.getStatus() != 2)) {
+            throw new BusinessException("审核状态必须为通过或拒绝");
+        }
         JoinApply apply = getById(applyId);
         if (apply == null || apply.getStatus() != 0) {
             throw new BusinessException("申请不存在或已审核");
@@ -86,6 +93,11 @@ public class JoinApplyServiceImpl extends ServiceImpl<JoinApplyMapper, JoinApply
         apply.setReviewRemark(dto.getRemark());
         apply.setReviewTime(LocalDateTime.now());
         updateById(apply);
+        String statusText = dto.getStatus() == 1 ? "通过" : "拒绝";
+        messageService.send(apply.getUserId(), "加入小组申请" + statusText,
+                "你申请加入“" + group.getName() + "”的请求已审核" + statusText + "。",
+                "JOIN_APPLY", apply.getId());
+        operationLogService.record("APPLY", "REVIEW", apply.getId(), "审核加入申请：" + statusText);
     }
 
     @Override

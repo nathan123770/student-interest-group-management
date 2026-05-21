@@ -21,6 +21,9 @@ public class AuthInterceptor implements HandlerInterceptor {
     @Override
     @SuppressWarnings("unchecked")
     public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) {
+        if ("GET".equalsIgnoreCase(request.getMethod()) && "/api/categories".equals(request.getRequestURI())) {
+            return true;
+        }
         String header = request.getHeader("Authorization");
         if (header == null || !header.startsWith("Bearer ")) {
             throw new BusinessException(401, "请先登录");
